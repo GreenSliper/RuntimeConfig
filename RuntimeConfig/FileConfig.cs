@@ -43,43 +43,40 @@ namespace RuntimeConfig
 			}
 		}
 
-		Stream StreamFromString(string s)
+		List<string> GetSourceOrModifiedLinesList(List<string> raw)
 		{
-			var stream = new MemoryStream();
-			var writer = new StreamWriter(stream);
-			writer.Write(s);
-			writer.Flush();
-			stream.Position = 0;
-			return stream;
-		}
-
-		IEnumerable<string> GetSourceOrModifiedLines(string raw)
-		{
-			using (var sr = new StreamReader(StreamFromString(raw)))
+			List<string> result = new List<string>();
+			Dictionary<string, string> tmpDct = new Dictionary<string, string>(dict);
+			for(int i = 0; i < raw.Count; i++)
 			{
-				string line = "";
-				int cnt = -1;
-				while ((line = sr.ReadLine()) != null)
-				{
-					cnt++;
-					//if line contains valid key-value pair
-					if (dictLines.TryGetValue(cnt, out var key))
-						if (dict.TryGetValue(key, out var val))
-							yield return key + '=' + val;
-						else //key removed
-							continue;
-					else //non-modified line
-						yield return line;
+				//if line contains valid key-value pair
+				if (dictLines.TryGetValue(i, out var key))
+					if (tmpDct.TryGetValue(key, out var val))
+					{
+						result.Add(key + '=' + val);
+						tmpDct.Remove(key);
+					}
+					else //key removed
+						continue;
+				else//non-modified line leaves the same
+					result.Add(raw[i]);
 			}
-			}
+			foreach (var kvp in tmpDct)
+				result.Add(kvp.Key + '=' + kvp.Value);
+			return result;
 		}
 
 		protected override void Save()
 		{
-			string raw;
+			var raw = new List<string>();
 			using (var sr = new StreamReader(fileName))
-				raw = sr.ReadToEnd();
-			var lns = GetSourceOrModifiedLines(raw);
+			{
+				var ln="";
+				while ((ln = sr.ReadLine()) != null)
+					raw.Add(ln);
+			}
+			var lns = GetSourceOrModifiedLinesList(raw);
+			
 			using (var sw = new StreamWriter(fileName))
 			{
 				foreach (var ln in lns)

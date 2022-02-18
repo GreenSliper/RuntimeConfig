@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace RuntimeConfig
 {
@@ -6,10 +7,19 @@ namespace RuntimeConfig
 	{
 		static void Main(string[] args)
 		{
+			Stopwatch sw = new Stopwatch();
+			int N = 1000;
 			TextFileConfig tfc = new TextFileConfig(loadDataImmediately: true);
-			Console.WriteLine(tfc["id"]);
-			tfc["id"] = "1";
-			tfc.SaveChanges();
+
+			sw.Start();
+			for (int i = 0; i < N; i++)
+			{
+				tfc["id"] = (i % 2).ToString();
+				tfc.SaveChanges();
+			}
+			sw.Stop();
+			Console.WriteLine("Elapsed={0}", sw.Elapsed);
+			Console.ReadKey();
 		}
 	}
 }
