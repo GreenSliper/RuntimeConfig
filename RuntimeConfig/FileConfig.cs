@@ -8,11 +8,15 @@ namespace RuntimeConfig
 	/// <summary>
 	/// Each line should contain one key-value pair with equality sign (=) between them
 	/// Use double forward slash for comments
-	/// Empty lines are ignored
+	/// If the value contains equality sign or leading/trailing whitespaces, use double quotes
+	/// Empty/invalid lines are ignored
 	/// </summary>
 	public class TextFileConfig : ConfigBase
 	{
 		string fileName;
+		
+		char splitChar = '=', quoteChar = '\"';
+		string commentStringStart = "//";
 		//for overriding changes
 		Dictionary<int, string> dictLines = new Dictionary<int, string>();
 		public TextFileConfig(string fileName = "config.conf", bool loadDataImmediately = false)
@@ -21,6 +25,31 @@ namespace RuntimeConfig
 			if (loadDataImmediately)
 				LoadData();
 		}
+
+		bool SplitLine(string line, out string key, out string value)
+		{
+			key = value = null;
+			line = line.Trim();
+			int breakIndex = 0;
+			if (line.StartsWith(commentStringStart) || (breakIndex = line.IndexOf(splitChar)) < 0)
+				return false;
+			key = line.Substring(0, breakIndex).TrimEnd();
+			//value is null, valid
+			if (breakIndex == line.Length - 1)
+				return true;
+			value = line.Substring(breakIndex + 1).TrimStart();
+			//double equality is not valid, except if the value is quoted 
+			//and equality sign is a part of the value
+			if (value.Contains(splitChar))
+			{
+				bool isQuoted = value.StartsWith(quoteChar) && value.EndsWith(quoteChar);
+				if (!isQuoted)
+					return false;
+				value = value.Trim(quoteChar);
+			}
+			return true;
+		}
+
 		protected override void Load()
 		{
 			using (var sr = new StreamReader(fileName))
@@ -30,15 +59,11 @@ namespace RuntimeConfig
 				while ((line = sr.ReadLine()) != null)
 				{
 					cnt++;
-					line = line.Trim();
-					if (line.StartsWith("//") || !line.Contains('='))
-						continue;
-					var splt = line.Split('=');
-					if (splt.Length != 2)
-						continue;
-					var key = splt[0].TrimEnd();
-					dict.Add(key, splt[1].TrimStart());
-					dictLines.Add(cnt, key);
+					if (SplitLine(line, out var key, out var val))
+					{
+						dict.Add(key, val);
+						dictLines.Add(cnt, key);
+					}
 				}
 			}
 		}
