@@ -37,17 +37,14 @@ namespace RuntimeConfig
 			//value is null, valid
 			if (breakIndex == line.Length - 1)
 				return true;
+
 			value = line.Substring(breakIndex + 1).TrimStart();
+			bool isQuoted = value.StartsWith(quoteChar) && value.EndsWith(quoteChar);
+			if(isQuoted)
+				value = value.Trim(quoteChar);
 			//double equality is not valid, except if the value is quoted 
 			//and equality sign is a part of the value
-			if (value.Contains(splitChar))
-			{
-				bool isQuoted = value.StartsWith(quoteChar) && value.EndsWith(quoteChar);
-				if (!isQuoted)
-					return false;
-				value = value.Trim(quoteChar);
-			}
-			return true;
+			return !value.Contains(splitChar) || isQuoted;
 		}
 
 		protected override void Load()
